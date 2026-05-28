@@ -60,3 +60,38 @@ def get_user_by_id(user_id: int, response: Response):
         status_code=status.HTTP_404_NOT_FOUND, 
         detail=f"Usuario con ID {user_id} no encontrado en el sistema"
     )
+
+# --- ENDPOINT POST (FASE 4) ---
+
+@router.post("", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+def create_user(user: UserCreate, response: Response):
+    """
+    Registrar un nuevo usuario en el sistema.
+    Valida que el ID y el Email sean únicos para evitar duplicados.
+    """
+    add_custom_headers(response)
+
+    # 1. Validar si el ID ya existe en nuestra base de datos simulada
+    for existing_user in db_users:
+        if existing_user["id"] == user.id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Error de duplicado: El usuario con ID {user.id} ya se encuentra registrado"
+            )
+            
+    # 2. Validar si el Email ya existe
+    for existing_user in db_users:
+        if existing_user["email"].lower() == user.email.lower():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Error de duplicado: El correo electrónico '{user.email}' ya está en uso"
+            )
+
+    # 3. Si pasa las validaciones, transformamos el objeto de Pydantic a un diccionario de Python
+    new_user_dict = user.model_dump()
+    
+    # 4. Lo guardamos en nuestra base de datos en memoria
+    db_users.append(new_user_dict)
+    
+    # 5. Retornamos el usuario creado (FastAPI lo filtrará automáticamente usando UserResponse)
+    return new_user_dict
