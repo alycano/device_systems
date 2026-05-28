@@ -13,3 +13,7 @@
 
 ---
 
+## Fase 3 - Endpoints GET con Parámetros
+<p>En la tercera fase del proyecto, desarrollé los endpoints de lectura para el recurso de usuarios dentro del enrutador modular 'user_routes.py', utilizando el decorador '@router.get' para exponer las rutas de consulta HTTP. Con el objetivo de simular un entorno de producción persistente, estructuré una base de datos en memoria denominada 'db_users' poblada con registros iniciales tipados. Implementé un endpoint general para listar la colección completa de usuarios, el cual integra 'Query Parameters' opcionales que permiten al cliente filtrar las respuestas de forma dinámica según el rol administrativo asignado o el estado de actividad del usuario en el sistema. Asimismo, diseñé un endpoint específico que emplea 'Path Parameters' dinámicos para recuperar la información de un único usuario a través de su identificador numérico; este endpoint incluye una estructura de control de flujo que valida la existencia del recurso en la lista local y, en caso de que el identificador consultado no coincida con ningún registro, dispara de forma automática una excepción 'HTTPException' con un código de estado 404 de recurso no encontrado, garantizando una respuesta estandarizada y segura.</p>
+
+---
