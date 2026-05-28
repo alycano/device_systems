@@ -1,0 +1,5 @@
+27/05/2026
+
+En esta primera fase del proyecto device_systems, configuré con éxito la estructura base del entorno backend utilizando Python 3.13. Inicialicé un repositorio Git local y organicé las carpetas de manera modular, separando los esquemas de validación y los enrutadores lógicos dentro del directorio principal app para garantizar la escalabilidad de la arquitectura. Asimismo, creé y activé un entorno virtual aislado denominado fastapi_env para prevenir conflictos de dependencias en el sistema global, y mediante el archivo requirements.txt instalé de forma estricta las versiones oficiales requeridas para este reto: FastAPI v0.115.0 y Uvicorn v0.31.0 con soporte estándar. Finalmente, implementé un archivo .gitignore personalizado para asegurar que los archivos temporales de Python y los binarios del entorno virtual no se suban al repositorio remoto de GitHub, cumpliendo así con las buenas prácticas de desarrollo profesional desde el despliegue inicial.
+----------------------------------------------------------------------------------------------------------------
+
