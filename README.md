@@ -77,3 +77,37 @@ python -m uvicorn app.main:app --reload
 <p>El desarrollo de este reto integrador evidencia que FastAPI representa una evolución disruptiva en la construcción de servicios backend bajo el lenguaje Python. Su integración nativa con Pydantic v2 resuelve de forma elegante la validación de tipos de datos en tiempo de ejecución, transformando una tarea que tradicionalmente requería múltiples líneas de código de control en un proceso declarativo y automatizado. Asimismo, la generación automática de la documentación bajo el estándar OpenAPI (Swagger UI) optimiza los tiempos de desarrollo y facilita la comunicación con equipos de desarrollo externos o de aseguramiento de calidad. En conclusión, FastAPI no solo incrementa la velocidad de ejecución del software gracias a su soporte asíncrono, sino que eleva la productividad del desarrollador al garantizar la robustez, la tipificación estricta y el manejo nativo de errores HTTP con un esfuerzo de infraestructura mínimo.</p>
 
 ---
+
+# Proyecto: Device Systems API (Evolución CRUD y Arquitectura Modular)
+*Fecha de reporte: 04/06/2026*
+
+---
+
+## Descripción de la Aplicación
+<p><b>device_systems</b> es un microservicio backend desarrollado con FastAPI diseñado para la gestión centralizada, validación y administración del recurso de usuarios del sistema. En esta segunda versión, la aplicación evoluciona de manera estructural hacia una solución profesional y robusta de nivel empresarial. Se implementa un ciclo CRUD completo para el recurso de usuarios, integrando inyección de dependencias para la reutilización de lógica de validación, un sistema avanzado y tipificado de control de excepciones HTTP, y metadatos extendidos para la autogeneración de la documentación OpenAPI.</p>
+
+---
+
+## Guía de Instalación y Ejecución
+
+### Prerrequisitos
+* Python 3.11 o superior instalado globalmente.
+* Git para la gestión del repositorio.
+
+### Instrucciones de Despliegue Local
+```bash
+# 1. Clonar el repositorio y acceder a la rama de la evolución técnica
+git clone [https://github.com/alycano/device_systems.git](https://github.com/alycano/device_systems.git)
+cd device_systems
+git checkout feature-evolucion-api
+
+# 2. Crear y activar el entorno virtual aislado
+python -m venv fastapi_env
+# En Windows (Git Bash):
+source fastapi_env/Scripts/activate
+
+# 3. Instalar las dependencias oficiales requeridas (FastAPI, Pydantic, Uvicorn)
+pip install -r requirements.txt
+
+# 4. Iniciar el servidor de desarrollo en bucle de recarga automática
+uvicorn app.main:app --reload
