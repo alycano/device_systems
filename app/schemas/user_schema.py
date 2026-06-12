@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field, EmailStr, field_validator
 from enum import Enum
 from typing import Optional
+from datetime import datetime
 
 # 1. Definimos un Enum para restringir los roles permitidos
 class UserRole(str, Enum):
@@ -15,12 +16,17 @@ class UserBase(BaseModel):
     role: UserRole = Field(default=UserRole.USER, description="Roles permitidos: admin, support, user")
     is_active: bool = Field(default=True, description="Estado de actividad del usuario")
 
-# 3. Esquema de Entrada: Lo que el cliente envía al registrar un usuario (Fase 4)
+# 3. Esquema de Entrada: Lo que el cliente envía al registrar un usuario (POST)
+# Nota: Quitamos el ID obligatorio de aquí porque SQLAlchemy lo autogenera de forma incremental en la BD
 class UserCreate(UserBase):
-    id: int = Field(..., gt=0, description="ID único y obligatorio, debe ser mayor a cero")
+    pass
 
-# 3.5 Esquema de Modificación Parcial: Requerido para el método PATCH (Fase 3 de la guía)
-class UserUpdateParcial(BaseModel):
+# 4. Esquema de Actualización Completa (PUT)
+class UserUpdate(UserBase):
+    pass
+
+# 5. Esquema de Modificación Parcial: Requerido para el método PATCH (Invocado como UserPatch)
+class UserPatch(BaseModel):
     name: Optional[str] = Field(None, min_length=3, description="Modificación opcional del nombre")
     email: Optional[EmailStr] = Field(None, description="Modificación opcional del correo electrónico")
     role: Optional[UserRole] = Field(None, description="Modificación opcional del rol operativo")
@@ -32,10 +38,11 @@ class UserUpdateParcial(BaseModel):
             raise ValueError('El nombre no puede estar vacío ni contener solo espacios en blanco')
         return v
 
-# 4. Esquema de Salida: Lo que la API devuelve al cliente (Fase 5 - Response Model)
+# 6. Esquema de Salida: Lo que la API devuelve al cliente (Response Model)
 class UserResponse(UserBase):
     id: int
+    created_at: datetime  # Incluido para cumplir con la Fase 5 del modelo de datos de la guía
 
     class Config:
-        # Permite a Pydantic leer datos incluso si mapeamos objetos de bases de datos más adelante
+        # Permite a Pydantic mapear de forma directa los objetos de la base de datos de SQLAlchemy
         from_attributes = True
