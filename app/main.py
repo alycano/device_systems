@@ -2,14 +2,18 @@
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 from app.routes.user_routes import router as user_router
+from app.database.connection import engine, Base  # Importación del ORM para la persistencia
 
-# Fase 8: Inicialización evolucionada de la aplicación FastAPI con metadatos extendidos
+# Inicializar las tablas físicas en la base de datos SQLite de forma automática al arrancar
+Base.metadata.create_all(bind=engine)
+
+# Fase 8: Inicialización evolucionada de la aplicación FastAPI con metadatos extendidos y persistencia ORM
 app = FastAPI(
     title="Device Systems API",
     description="""
     Sistema de gestión, validación y administración del recurso de usuarios para el control de hardware IT 'device_systems'.
     
-    Esta versión intermedia incorpora un ciclo CRUD completo, inyección de dependencias declarativa, persistencia modular en memoria y control estricto de excepciones HTTP.
+    Esta versión definitiva incorpora persistencia real de datos mediante SQLAlchemy ORM, una base de datos relacional SQLite y control estricto de excepciones HTTP.
     """,
     version="2.0.0",
     contact={
@@ -31,7 +35,7 @@ async def manejador_errores_inesperados(request: Request, exc: Exception):
         }
     )
 
-# Inclusión del enrutador modular de usuarios
+# Inclusión del enrutador modular de usuarios conectado a la base de datos
 app.include_router(user_router)
 
 @app.get("/", tags=["Root"])

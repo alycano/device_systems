@@ -1,32 +1,35 @@
+# app/routes/user_routes.py
 from fastapi import APIRouter, Depends, status, HTTPException, Query, Response
+from sqlalchemy.orm import Session
 from typing import List, Optional
-from app.schemas.user_schema import UserResponse, UserCreate, UserUpdateParcial, UserRole
+from app.schemas.user_schema import UserResponse, UserCreate, UserPatch, UserUpdate
 from app.services.user_service import UserService
-from app.dependencies.user_dependencies import get_user_or_404, verificar_email_duplicado
+from app.dependencies.database_dependency import get_db
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
-# --- Función Auxiliar para Cabeceras HTTP Personalizadas (Evolución Fase 5) ---
+# --- Función Auxiliar para Cabeceras HTTP Personalizadas ---
 def add_custom_headers(response: Response):
     response.headers["X-App-Name"] = "device_systems"
     response.headers["X-API-Version"] = "2.0"
 
-# --- ENDPOINTS GET (FASE 5 Y RETO INTEGRADOR) ---
+# --- ENDPOINTS GET (FASE 9 Y RETO INTEGRADOR) ---
 
 @router.get(
     "", 
     response_model=List[UserResponse], 
     status_code=status.HTTP_200_OK,
     summary="Listar y filtrar usuarios",
-    description="Listar todos los usuarios del sistema. Permite la personalización de la respuesta mediante filtros opcionales de consulta (Query Parameters) por rol o estado activo."
+    description="Listar todos los usuarios de la base de datos relacional utilizando SQLAlchemy. Permite filtros opcionales por rol o estado activo y ordena por nombre."
 )
 def get_users(
     response: Response,
-    role: Optional[UserRole] = Query(None, description="Filtrar usuarios por rol administrativo u operativo"),
-    is_active: Optional[bool] = Query(None, description="Filtrar usuarios por estado activo o inactivo")
+    role: Optional[str] = Query(None, description="Filtrar usuarios por rol (admin, support, user)"),
+    is_active: Optional[bool] = Query(None, description="Filtrar usuarios por estado activo o inactivo"),
+    db: Session = Depends(get_db)
 ):
     add_custom_headers(response)
-    return UserService.obtener_y_filtrar(role, is_active)
+    return UserService.get_all(db, role=role, is_active=is_active)
 
 
 @router.get(
@@ -34,41 +37,67 @@ def get_users(
     response_model=UserResponse, 
     status_code=status.HTTP_200_OK,
     summary="Consultar usuario por ID",
-    description="Obtener los detalles de un usuario específico utilizando su ID único a través de un parámetro de ruta (Path Parameter) e inyección de dependencias."
+    description="Obtener los detalles de un usuario específico desde la base de datos utilizando su ID único. Si no existe, retorna 404."
 )
-def get_user_by_id(response: Response, usuario: dict = Depends(get_user_or_404)):
+def get_user_by_id(user_id: int, response: Response, db: Session = Depends(get_db)):
     add_custom_headers(response)
-    return usuario
+    user = UserService.get_by_id(db, user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, 
+            detail="Usuario no encontrado"
+        )
+    return user
 
-# --- ENDPOINT POST (FASE 4 Y 5) ---
+# --- ENDPOINT POST (FASE 9 Y 10) ---
 
 @router.post(
     "", 
     response_model=UserResponse, 
     status_code=status.HTTP_201_CREATED,
     summary="Registrar un nuevo usuario",
-    description="Registrar un nuevo usuario en el sistema. Valida que el correo electrónico sea único para evitar duplicados."
+    description="Registrar un nuevo usuario en la base de datos SQLite. Valida restricciones de unicidad sobre el correo electrónico."
 )
-def create_user(user: UserCreate, response: Response):
+def create_user(user_in: UserCreate, response: Response, db: Session = Depends(get_db)):
     add_custom_headers(response)
-    # Validar si el Email ya existe en el sistema global
-    verificar_email_duplicado(user.email)
-    return UserService.guardar_nuevo(user)
+    
+    # Validar si el Email ya existe en la BD antes de crear (Fase 10)
+    existing_user = UserService.get_by_email(db, user_in.email)
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email ya registrado"
+        )
+    return UserService.create(db, user_in)
 
-# --- ENDPOINTS PUT Y PATCH (FASE 3) ---
+# --- ENDPOINTS PUT Y PATCH (FASE 9 Y 10) ---
 
 @router.put(
     "/{user_id}", 
     response_model=UserResponse, 
     status_code=status.HTTP_200_OK,
     summary="Actualización completa (PUT)",
-    description="Reemplaza por completo la información de un usuario existente en el sistema identificándolo por su ID."
+    description="Reemplaza por completo la información de un usuario existente en la base de datos identificándolo por su ID."
 )
-def update_user_complete(payload: UserCreate, response: Response, usuario_actual: dict = Depends(get_user_or_404)):
+def update_user_complete(user_id: int, payload: UserUpdate, response: Response, db: Session = Depends(get_db)):
     add_custom_headers(response)
-    # Validar duplicado de email excluyendo al usuario que se está editando
-    verificar_email_duplicado(payload.email, excluir_id=usuario_actual["id"])
-    return UserService.sobreescribir_registro(usuario_actual, payload)
+    
+    user = UserService.get_by_id(db, user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, 
+            detail="Error al actualizar usuario inexistente"
+        )
+    
+    # Validar duplicado de email excluyendo al ID que se está editando
+    existing_email = UserService.get_by_email(db, payload.email)
+    if existing_email and existing_email.id != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email ya registrado por otro usuario"
+        )
+        
+    return UserService.update_complete(db, user, payload)
 
 
 @router.patch(
@@ -76,36 +105,55 @@ def update_user_complete(payload: UserCreate, response: Response, usuario_actual
     response_model=UserResponse, 
     status_code=status.HTTP_200_OK,
     summary="Actualización parcial (PATCH)",
-    description="Permite modificar solo algunos campos del usuario de manera selectiva. Si el cuerpo de la petición está vacío, responde con un error 400."
+    description="Permite modificar solo algunos campos del usuario de manera selectiva en la base de datos. Si el cuerpo está vacío, responde con un error 400."
 )
-def update_user_partial(payload: UserUpdateParcial, response: Response, usuario_actual: dict = Depends(get_user_or_404)):
+def update_user_partial(user_id: int, payload: UserPatch, response: Response, db: Session = Depends(get_db)):
     add_custom_headers(response)
     
-    # Extraer campos enviados explícitamente por el cliente
+    user = UserService.get_by_id(db, user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, 
+            detail="Error al actualizar usuario inexistente"
+        )
+    
     datos_actualizacion = payload.model_dump(exclude_unset=True)
     
-    # Fase 3 y 6: Responder con 400 Bad Request si envían un cuerpo vacío {}
+    # Controlar error de actualización vacía {} (Fase 10)
     if not datos_actualizacion:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Intento de actualización sin datos. Debe proporcionar al menos un campo válido."
         )
     
-    # Si se intenta cambiar el correo, validar que no cause duplicados
+    # Si se cambia el email, validar que no cause conflicto con otro usuario
     if "email" in datos_actualizacion:
-        verificar_email_duplicado(datos_actualizacion["email"], excluir_id=usuario_actual["id"])
+        existing_email = UserService.get_by_email(db, datos_actualizacion["email"])
+        if existing_email and existing_email.id != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email ya registrado por otro usuario"
+            )
         
-    return UserService.actualizar_campos_parciales(usuario_actual, datos_actualizacion)
+    return UserService.update_partial(db, user, payload)
 
-# --- ENDPOINT DELETE (FASE 4) ---
+# --- ENDPOINT DELETE (FASE 9 Y 10) ---
 
 @router.delete(
     "/{user_id}", 
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Eliminar un usuario",
-    description="Permite eliminar de forma permanente un usuario existente del sistema. Retorna un estado 204 No Content sin cuerpo de respuesta."
+    description="Permite eliminar de forma permanente un usuario existente de la base de datos. Si el usuario no existe, arroja un error 404."
 )
-def delete_user(response: Response, usuario_actual: dict = Depends(get_user_or_404)):
+def delete_user(user_id: int, response: Response, db: Session = Depends(get_db)):
     add_custom_headers(response)
-    UserService.borrar_registro(usuario_actual)
+    
+    user = UserService.get_by_id(db, user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, 
+            detail="Error al eliminar usuario inexistente"
+        )
+        
+    UserService.delete(db, user)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
