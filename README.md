@@ -111,3 +111,33 @@ pip install -r requirements.txt
 
 # 4. Iniciar el servidor de desarrollo en bucle de recarga automática
 uvicorn app.main:app --reload
+
+# Device Systems API — Persistencia con SQLAlchemy
+### Proyecto de Evidencia: GA1-220501096-01-AA1-EV09 (ADSO SENA)
+
+Evolución del backend corporativo device_systems mediante la migración de la gestión de datos temporales en memoria RAM hacia una arquitectura de persistencia real y estructurada, implementando una base de datos relacional SQLite mediante el ORM SQLAlchemy.
+
+---
+
+## 1. Estructura Final del Proyecto
+
+Siguiendo de forma estricta la arquitectura modular y el árbol de directorios exigido en la Fase 2 de la guía:
+
+```text
+device_systems/
+│── app/
+│   │── main.py
+│   │── database/
+│   │   │── connection.py
+│   │── models/
+│   │   │── user_model.py
+│   │── schemas/
+│   │   │── user_schema.py
+│   │── routes/
+│   │   │── user_routes.py
+│   │── services/
+│   │   │── user_service.py
+│   │── dependencies/
+│   │   │── database_dependency.py
+│── requirements.txt
+│── README.md
