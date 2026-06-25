@@ -381,3 +381,12 @@ Las siguientes pruebas deben documentarse con capturas:
 ## Reflexión sobre Seguridad en APIs REST
 
 La implementación de seguridad en APIs REST es crucial para proteger datos sensibles y garantizar la integridad del sistema. El uso de **JWT** permite autenticación stateless sin almacenar sesiones en servidor, mientras que **bcrypt** garantiza que las contraseñas se almacenen de forma segura mediante hash con sal. El **rate limiting** protege contra ataques de fuerza bruta y abuso de endpoints, y **CORS** controla qué dominios pueden consumir la API. Los **roles y permisos** aseguran que cada usuario tenga acceso solo a las operaciones que le corresponden, siguiendo el principio de mínimo privilegio.
+
+### Importancia de la Seguridad CORS con Credenciales (Requisito EV11)
+
+En este proyecto se ha configurado `CORSMiddleware` restringiendo el acceso web a dominios locales explícitos (`http://localhost:5173` y `http://localhost:3000`). 
+
+Por diseño estricto del estándar W3C y las especificaciones de seguridad de los navegadores modernos, **no se permite ni se recomienda bajo ninguna circunstancia** configurar `allow_origins=["*"]` simultáneamente con `allow_credentials=True` en entornos de producción debido a:
+
+1. **Incompatibilidad Técnica del Protocolo:** Si una solicitud HTTP incluye credenciales (cookies de sesión o encabezados de autorización HTTP Bearer), el navegador rechazará automáticamente la respuesta si el servidor retorna el comodín `*`. El servidor está obligado a retornar el dominio exacto del origen.
+2. **Exposición ante Ataques CSRF (Cross-Site Request Forgery):** Permitir cualquier origen con credenciales habilitaría a cualquier sitio web malicioso abierto en el navegador del usuario a realizar peticiones autenticadas hacia nuestra API en su nombre, manipulando el inventario de dispositivos o alterando préstamos.
