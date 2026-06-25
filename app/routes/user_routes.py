@@ -1,67 +1,73 @@
 # app/routes/user_routes.py
-from fastapi import APIRouter, Depends, status, HTTPException, Query, Response
+from fastapi import APIRouter, Depends, status, HTTPException, Query, Response, Request
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from app.schemas.user_schema import UserResponse, UserCreate, UserPatch, UserUpdate
 from app.services.user_service import UserService
 from app.dependencies.database_dependency import get_db
+from app.dependencies.auth_dependency import get_current_active_user
+from app.middlewares.rate_limiter import limiter
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
-# --- Función Auxiliar para Cabeceras HTTP Personalizadas ---
 def add_custom_headers(response: Response):
     response.headers["X-App-Name"] = "device_systems"
-    response.headers["X-API-Version"] = "2.0"
-
-# --- ENDPOINTS GET (FASE 9 Y RETO INTEGRADOR) ---
+    response.headers["X-API-Version"] = "3.0"
 
 @router.get(
-    "", 
-    response_model=List[UserResponse], 
+    "",
+    response_model=List[UserResponse],
     status_code=status.HTTP_200_OK,
     summary="Listar y filtrar usuarios",
-    description="Listar todos los usuarios de la base de datos relacional utilizando SQLAlchemy. Permite filtros opcionales por rol o estado activo y ordena por nombre."
+    description="Listar todos los usuarios de la base de datos. Requiere autenticación."
 )
+@limiter.limit("30/minute")
 def get_users(
+    request: Request,
     response: Response,
     role: Optional[str] = Query(None, description="Filtrar usuarios por rol (admin, support, user)"),
     is_active: Optional[bool] = Query(None, description="Filtrar usuarios por estado activo o inactivo"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_active_user)
 ):
     add_custom_headers(response)
     return UserService.get_all(db, role=role, is_active=is_active)
 
-
 @router.get(
-    "/{user_id}", 
-    response_model=UserResponse, 
+    "/{user_id}",
+    response_model=UserResponse,
     status_code=status.HTTP_200_OK,
     summary="Consultar usuario por ID",
-    description="Obtener los detalles de un usuario específico desde la base de datos utilizando su ID único. Si no existe, retorna 404."
+    description="Obtener los detalles de un usuario específico. Requiere autenticación."
 )
-def get_user_by_id(user_id: int, response: Response, db: Session = Depends(get_db)):
+def get_user_by_id(
+    user_id: int,
+    response: Response,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_active_user)
+):
     add_custom_headers(response)
     user = UserService.get_by_id(db, user_id)
     if not user:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, 
+            status_code=status.HTTP_404_NOT_FOUND,
             detail="Usuario no encontrado"
         )
     return user
 
-# --- ENDPOINT POST (FASE 9 Y 10) ---
-
 @router.post(
-    "", 
-    response_model=UserResponse, 
+    "",
+    response_model=UserResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Registrar un nuevo usuario",
     description="Registrar un nuevo usuario en la base de datos SQLite. Valida restricciones de unicidad sobre el correo electrónico."
 )
-def create_user(user_in: UserCreate, response: Response, db: Session = Depends(get_db)):
+def create_user(
+    user_in: UserCreate,
+    response: Response,
+    db: Session = Depends(get_db)
+):
     add_custom_headers(response)
-    
-    # Validar si el Email ya existe en la BD antes de crear (Fase 10)
     existing_user = UserService.get_by_email(db, user_in.email)
     if existing_user:
         raise HTTPException(

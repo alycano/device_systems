@@ -1,48 +1,68 @@
 # app/services/user_service.py
-from app.data.users_db import users_db
-from app.schemas.user_schema import UserCreate
+from sqlalchemy.orm import Session
+from app.models.user_model import User
+from app.schemas.user_schema import UserCreate, UserUpdate, UserPatch
+from app.auth.security import get_password_hash
 
 class UserService:
-    
+
     @staticmethod
-    def obtener_y_filtrar(role: str = None, is_active: bool = None) -> list:
-        resultado = users_db
+    def get_all(db: Session, role: str = None, is_active: bool = None):
+        query = db.query(User)
         if role:
-            resultado = [u for u in resultado if u["role"] == role]
+            query = query.filter(User.role == role)
         if is_active is not None:
-            resultado = [u for u in resultado if u["is_active"] == is_active]
-        return resultado
+            query = query.filter(User.is_active == is_active)
+        return query.order_by(User.name).all()
 
     @staticmethod
-    def guardar_nuevo(datos: UserCreate) -> dict:
-        nuevo_id = max([u["id"] for u in users_db], default=0) + 1
-        nuevo_usuario = {
-            "id": nuevo_id,
-            "name": datos.name,
-            "email": datos.email.lower(),
-            "role": datos.role,
-            "is_active": datos.is_active
-        }
-        users_db.append(nuevo_usuario)
-        return nuevo_usuario
+    def get_by_id(db: Session, user_id: int):
+        return db.query(User).filter(User.id == user_id).first()
 
     @staticmethod
-    def sobreescribir_registro(usuario_actual: dict, nuevos_datos: UserCreate) -> dict:
-        usuario_actual["name"] = nuevos_datos.name
-        usuario_actual["email"] = nuevos_datos.email.lower()
-        usuario_actual["role"] = nuevos_datos.role
-        usuario_actual["is_active"] = nuevos_datos.is_active
-        return usuario_actual
+    def get_by_email(db: Session, email: str):
+        return db.query(User).filter(User.email == email).first()
 
     @staticmethod
-    def actualizar_campos_parciales(usuario_actual: dict, datos_filtrados: dict) -> dict:
-        for llave, valor in datos_filtrados.items():
-            if llave == "email" and valor:
-                usuario_actual[llave] = valor.lower()
-            else:
-                usuario_actual[llave] = valor
-        return usuario_actual
+    def create(db: Session, user_data: UserCreate):
+        db_user = User(
+            name=user_data.name,
+            email=user_data.email.lower(),
+            hashed_password=get_password_hash(user_data.password),
+            role=user_data.role,
+            is_active=user_data.is_active
+        )
+        db.add(db_user)
+        db.commit()
+        db.refresh(db_user)
+        return db_user
 
     @staticmethod
-    def borrar_registro(usuario_actual: dict) -> None:
-        users_db.remove(usuario_actual)
+    def update_complete(db: Session, user: User, user_data: UserUpdate):
+        user.name = user_data.name
+        user.email = user_data.email.lower()
+        user.role = user_data.role
+        user.is_active = user_data.is_active
+        if user_data.password:
+            user.hashed_password = get_password_hash(user_data.password)
+        db.commit()
+        db.refresh(user)
+        return user
+
+    @staticmethod
+    def update_partial(db: Session, user: User, user_data: UserPatch):
+        update_data = user_data.model_dump(exclude_unset=True)
+        if "email" in update_data and update_data["email"]:
+            update_data["email"] = update_data["email"].lower()
+        if "password" in update_data:
+            update_data["hashed_password"] = get_password_hash(update_data.pop("password"))
+        for key, value in update_data.items():
+            setattr(user, key, value)
+        db.commit()
+        db.refresh(user)
+        return user
+
+    @staticmethod
+    def delete(db: Session, user: User):
+        db.delete(user)
+        db.commit()

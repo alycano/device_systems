@@ -1,21 +1,29 @@
 # app/services/device_service.py
 from sqlalchemy.orm import Session
 from app.models.device_model import Device
-from app.schemas.device_schema import DeviceCreate, DeviceUpdate  # Suponiendo que usas estos schemas
+from app.schemas.device_schema import DeviceCreate, DeviceUpdate
 
 class DeviceService:
     @staticmethod
-    def get_all(db: Session, device_type: str = None, is_available: bool = None):
+    def get_all(db: Session, device_type: str = None, is_available: bool = None, search: str = None):
         query = db.query(Device)
         if device_type:
             query = query.filter(Device.device_type == device_type)
         if is_available is not None:
             query = query.filter(Device.is_available == is_available)
+        if search:
+            query = query.filter(
+                Device.name.ilike(f"%{search}%") | Device.serial_number.ilike(f"%{search}%")
+            )
         return query.all()
 
     @staticmethod
     def get_by_id(db: Session, device_id: int):
         return db.query(Device).filter(Device.id == device_id).first()
+
+    @staticmethod
+    def get_by_serial(db: Session, serial_number: str):
+        return db.query(Device).filter(Device.serial_number == serial_number).first()
 
     @staticmethod
     def create(db: Session, device_data: DeviceCreate):
@@ -32,23 +40,14 @@ class DeviceService:
         return db_device
 
     @staticmethod
-    def update(db: Session, device_id: int, device_data: DeviceUpdate):
-        db_device = db.query(Device).filter(Device.id == device_id).first()
-        if not db_device:
-            return None
-        
-        for key, value in device_data.dict(exclude_unset=True).items():
+    def update(db: Session, db_device: Device, device_data: DeviceUpdate):
+        for key, value in device_data.model_dump(exclude_unset=True).items():
             setattr(db_device, key, value)
-            
         db.commit()
         db.refresh(db_device)
         return db_device
 
     @staticmethod
-    def delete(db: Session, device_id: int):
-        db_device = db.query(Device).filter(Device.id == device_id).first()
-        if not db_device:
-            return False
+    def delete(db: Session, db_device: Device):
         db.delete(db_device)
         db.commit()
-        return True

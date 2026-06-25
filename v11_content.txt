@@ -1,0 +1,435 @@
+[Proyecto-Final-v2] GA1-220501096-01-AA1-EV11 – FastAPI Seguridad: Autenticación,
+Middleware, CORS, Rate Limiting y Validación Avanzada en device_systems
+Descripción de la actividad
+Cada aprendiz deberá evolucionar la aplicación device_systems, desarrollada en la actividad
+anterior, incorporando mecanismos de seguridad y protección propios de una API REST
+profesional.
+En la versión anterior, device_systems integró FastAPI, SQLAlchemy, Alembic, modelos
+relacionados, migraciones, consultas con joins y filtros. En esta nueva actividad, el aprendiz deberá
+fortalecer la API agregando:
+• Validaciones avanzadas con Pydantic v2.
+• Middleware personalizado.
+• Configuración de CORS.
+• Hash seguro de contraseñas con passlib.
+• Autenticación con OAuth2 y JWT.
+• Protección de rutas mediante dependencias.
+• Rate limiting para limitar peticiones abusivas.
+• Mejora de la seguridad general de la API.
+La aplicación seguirá llamándose:
+device_systems
+Los recursos principales continuarán siendo:
+
+GFPI-F-135 V04
+
+/users
+/devices
+/loans
+Y se agregará el recurso de autenticación:
+/auth
+El propósito de esta actividad es que el aprendiz transforme la API en una versión protegida,
+controlada y preparada para interactuar con clientes frontend de forma segura.
+
+Reto Integrador – Seguridad y Autenticación en device_systems
+Evolucionar la API REST device_systems para implementar autenticación, autorización básica,
+protección de rutas, validaciones robustas, configuración CORS, middleware personalizado y rate
+limiting.
+La API debe permitir:
+• Registrar usuarios con contraseña segura.
+• Almacenar contraseñas usando hash.
+• Autenticar usuarios mediante login.
+• Generar tokens JWT.
+• Proteger rutas privadas con OAuth2.
+• Restringir operaciones según rol.
+• Configurar CORS para permitir clientes autorizados.
+• Aplicar middleware global para trazabilidad y cabeceras.
+• Limitar el número de peticiones por cliente.
+• Mejorar los schemas con Pydantic v2.
+
+Relación de temas aplicados
+Tema Aplicación en el proyecto
+Pydantic v2 en
+FastAPI
+
+Uso de model_config, from_attributes, field_validator,
+model_validator, Field() y schemas de respuesta
+
+Middleware en
+FastAPI
+
+Registro de peticiones, medición de tiempo de respuesta, cabeceras globales y
+correlation ID
+
+CORS en FastAPI Control de dominios autorizados para consumir la API desde frontend
+Middleware y
+CORS
+
+Integración de middlewares personalizados con configuración de acceso entre
+dominios
+
+Hash con passlib Encriptar contraseñas antes de guardarlas en base de datos
+
+GFPI-F-135 V04
+
+Tema Aplicación en el proyecto
+OAuth2 con
+FastAPI Implementar login, generación de tokens JWT y protección de rutas
+Rate limiting Limitar peticiones para prevenir abuso de endpoints
+Seguridad Aplicar buenas prácticas de protección en APIs REST
+Instrucciones para el desarrollo de la actividad
+Fase 1 – Retomar el proyecto anterior
+Cada aprendiz deberá partir del proyecto device_systems de la actividad anterior, el cual debe
+tener:
+• FastAPI configurado.
+• SQLAlchemy.
+• Alembic.
+• Modelos User, Device y Loan.
+• Relaciones entre modelos.
+• CRUD de usuarios y dispositivos.
+• Gestión de préstamos.
+• Consultas con joins y filtros.
+• Swagger/OpenAPI funcional.
+En esta actividad se debe conservar la funcionalidad existente y agregar una capa de seguridad.
+Fase 2 – Actualizar la estructura del proyecto
+Actualizar la estructura sugerida:
+device_systems/
+│── app/
+│ │── main.py
+│ │
+│ │── auth/
+│ │ │── auth_routes.py
+│ │ │── auth_service.py
+│ │ │── security.py
+│ │
+│ │── database/
+│ │ │── connection.py
+│ │
+│ │── models/
+│ │ │── user_model.py
+│ │ │── device_model.py
+│ │ │── loan_model.py
+│ │
+│ │── schemas/
+
+GFPI-F-135 V04
+
+│ │ │── user_schema.py
+│ │ │── device_schema.py
+│ │ │── loan_schema.py
+│ │ │── auth_schema.py
+│ │
+│ │── routes/
+│ │ │── user_routes.py
+│ │ │── device_routes.py
+│ │ │── loan_routes.py
+│ │
+│ │── services/
+│ │ │── user_service.py
+│ │ │── device_service.py
+│ │ │── loan_service.py
+│ │
+│ │── dependencies/
+│ │ │── database_dependency.py
+│ │ │── auth_dependency.py
+│ │
+│ │── middlewares/
+│ │ │── request_middleware.py
+│ │
+│── alembic/
+│ │── versions/
+│
+│── .env
+│── .env.example
+│── alembic.ini
+│── requirements.txt
+│── README.md
+Fase 3 – Actualizar dependencias
+Instalar las dependencias necesarias:
+pip install python-jose[cryptography] passlib[bcrypt] slowapi python-multipart
+Actualizar el archivo:
+requirements.txt
+También se debe mantener:
+fastapi
+uvicorn
+sqlalchemy
+alembic
+pydantic
+email-validator
+python-dotenv
+
+GFPI-F-135 V04
+
+Fase 4 – Mejorar el modelo User
+Actualizar el modelo User para soportar autenticación.
+Campos mínimos adicionales:
+Campo Tipo Restricción
+hashed_password String Obligatorio
+role String Obligatorio
+is_active Boolean Valor por defecto True
+Roles sugeridos:
+admin
+support
+user
+El campo hashed_password nunca debe exponerse en los response models.
+Después de modificar el modelo, el aprendiz debe generar una migración con Alembic:
+alembic revision --autogenerate -m "add authentication fields to users"
+alembic upgrade head
+
+Fase 5 – Aplicar hash de contraseñas con passlib
+Crear el archivo:
+app/auth/security.py
+Implementar funciones para:
+• Crear hash de contraseña.
+• Verificar contraseña.
+• Crear token JWT.
+• Validar token JWT.
+Funciones sugeridas:
+get_password_hash(password)
+verify_password(plain_password, hashed_password)
+create_access_token(data: dict)
+decode_access_token(token: str)
+
+GFPI-F-135 V04
+
+Regla obligatoria:
+Ninguna contraseña debe guardarse ni mostrarse en texto plano.
+
+Fase 6 – Crear schemas de autenticación con Pydantic v2
+Crear el archivo:
+app/schemas/auth_schema.py
+Schemas sugeridos:
+UserRegister
+UserLogin
+Token
+TokenData
+Aplicar Pydantic v2 con:
+• Field() para metadata y restricciones.
+• field_validator para validar contraseñas.
+• model_validator para validar reglas entre campos, si aplica.
+• model_config = ConfigDict(from_attributes=True) en schemas de respuesta.
+Validaciones mínimas para contraseña:
+• Mínimo 8 caracteres.
+• Al menos una mayúscula.
+• Al menos una minúscula.
+• Al menos un número.
+• No permitir espacios en blanco.
+Fase 7 – Implementar autenticación OAuth2 con JWT
+Crear endpoints en:
+app/auth/auth_routes.py
+Endpoints obligatorios:
+POST /auth/register
+POST /auth/login
+GET /auth/me
+
+GFPI-F-135 V04
+
+POST /auth/register
+Debe permitir crear un usuario con contraseña segura.
+Debe validar:
+• Nombre obligatorio.
+• Email válido.
+• Email único.
+• Contraseña segura.
+• Rol permitido.
+Debe guardar:
+• Nombre.
+• Email.
+• Hash de contraseña.
+• Rol.
+• Estado activo.
+No debe guardar la contraseña en texto plano.
+POST /auth/login
+Debe permitir autenticar usuario y retornar token JWT.
+Respuesta esperada:
+{
+"access_token": "token_generado",
+"token_type": "bearer"
+}
+GET /auth/me
+Debe retornar los datos del usuario autenticado, usando el token enviado en:
+Authorization: Bearer <token>
+No debe retornar hashed_password.
+Fase 8 – Proteger rutas con dependencias
+Crear el archivo:
+app/dependencies/auth_dependency.py
+
+GFPI-F-135 V04
+
+Implementar dependencias como:
+get_current_user
+get_current_active_user
+require_admin
+Aplicar protección a las rutas:
+
+Ruta Protección requerida
+GET /users Usuario autenticado
+GET /users/{user_id} Usuario autenticado
+POST /devices Admin o support
+PUT /devices/{device_id} Admin o support
+DELETE /devices/{device_id} Admin
+POST /loans Usuario autenticado
+PATCH /loans/{loan_id}/return Admin o support
+GET /loans/details Admin o support
+Si el usuario no tiene permisos, responder:
+403 Forbidden
+Si el token es inválido o no existe, responder:
+401 Unauthorized
+
+Fase 9 – Configurar CORS
+Configurar CORSMiddleware en main.py.
+Para desarrollo, permitir un origen local, por ejemplo:
+allow_origins=[
+"http://localhost:5173",
+"http://localhost:3000"
+]
+Configurar:
+• allow_credentials=True
+• allow_methods=["*"]
+• allow_headers=["*"]
+
+GFPI-F-135 V04
+
+El aprendiz deberá explicar en el README.md por qué no se recomienda usar "*" en producción
+cuando hay credenciales.
+
+Fase 10 – Crear middleware personalizado
+Crear un middleware que permita:
+• Medir tiempo de respuesta.
+• Agregar cabecera X-Process-Time.
+• Agregar cabecera X-App-Name: device_systems.
+• Generar o propagar un X-Request-ID.
+• Registrar método, ruta y código de estado de cada petición.
+Ejemplo de cabeceras esperadas:
+X-App-Name: device_systems
+X-Process-Time: 0.0042
+X-Request-ID: 8f42e9c1
+
+Fase 11 – Aplicar rate limiting
+Configurar rate limiting usando slowapi.
+Aplicar límites mínimos:
+Endpoint Límite sugerido
+POST /auth/login 5 solicitudes por minuto
+POST /auth/register 3 solicitudes por minuto
+GET /users 30 solicitudes por minuto
+POST /loans 10 solicitudes por minuto
+Cuando se supere el límite, la API debe responder:
+429 Too Many Requests
+El aprendiz deberá evidenciar al menos una prueba donde se active el límite.
+Fase 12 – Mejorar documentación Swagger/OpenAPI
+Configurar metadatos en FastAPI:
+
+GFPI-F-135 V04
+
+app = FastAPI(
+title="device_systems API",
+description="API REST segura para gestión de usuarios, dispositivos y
+préstamos",
+version="3.0.0"
+)
+Organizar endpoints por tags:
+• Auth
+• Users
+• Devices
+• Loans
+• Security
+La documentación debe mostrar correctamente:
+• Endpoints protegidos.
+• Esquema OAuth2.
+• Modelos de entrada.
+• Modelos de salida.
+• Códigos de estado.
+• Descripción de errores.
+Fase 13 – Pruebas funcionales mínimas
+El aprendiz deberá probar y documentar:
+1. Registro de usuario.
+2. Registro con contraseña débil.
+3. Registro con email duplicado.
+4. Login correcto.
+5. Login con contraseña incorrecta.
+6. Consulta de /auth/me.
+7. Acceso a ruta protegida sin token.
+8. Acceso con token inválido.
+9. Acceso con usuario sin permisos.
+10. Creación de dispositivo con rol permitido.
+11. Eliminación de dispositivo con rol no permitido.
+12. Configuración CORS.
+13. Cabeceras generadas por middleware.
+14. Activación de rate limiting.
+15. Verificación de Swagger/OpenAPI.
+
+GFPI-F-135 V04
+
+Ambiente requerido
+• Computador con Python instalado.
+• Visual Studio Code o editor similar.
+• FastAPI.
+• Uvicorn.
+• SQLAlchemy.
+• Alembic.
+• Pydantic v2.
+• Passlib.
+• Python-jose.
+• Slowapi.
+• SQLite o PostgreSQL.
+• Git y GitHub.
+• Postman o Thunder Client.
+
+Estrategias o técnicas didácticas activas
+• Aprendizaje basado en retos.
+• Evolución incremental de un proyecto real.
+• Desarrollo seguro de APIs REST.
+• Pruebas funcionales de autenticación.
+• Análisis de errores y respuestas HTTP.
+• Revisión colaborativa de repositorios.
+• Documentación técnica de endpoints protegidos.
+
+Materiales de formación
+• Pydantic v2 en FastAPI.
+• Middleware en FastAPI.
+• CORS en FastAPI.
+• Middleware y CORS.
+• Hash con passlib.
+• OAuth2 con FastAPI.
+• Rate limiting.
+• Seguridad.
+Evidencias de aprendizaje
+Repositorio individual en GitHub con:
+• Proyecto device_systems actualizado.
+• Crear una rama que debes unificar con main llamada: device_systems_security
+
+GFPI-F-135 V04
+
+• Autenticación con OAuth2 y JWT.
+• Registro y login de usuarios.
+• Hash de contraseñas con passlib.
+• Rutas protegidas por token.
+• Roles y autorización básica.
+• Middleware personalizado.
+• Configuración CORS.
+• Rate limiting.
+• Validaciones avanzadas con Pydantic v2.
+• Migración Alembic para campos de autenticación.
+• README.md actualizado.
+• Archivo .env.example.
+Documento README.dm con:
+• Captura de la estructura del proyecto.
+• Captura de migración Alembic aplicada.
+• Captura del registro de usuario.
+• Captura del login y token generado.
+• Captura de /auth/me.
+• Captura de acceso sin token.
+• Captura de acceso con rol no permitido.
+• Captura de Swagger/OpenAPI con OAuth2.
+• Captura de cabeceras del middleware.
+• Captura de prueba de rate limiting.
+• Explicación de CORS configurado.
+• Reflexión final sobre la importancia de la seguridad en APIs REST.
+Socialización breve, máximo 15 minutos
+Cada aprendiz deberá explicar mediante un video de youtube:
+• Explicar todas las funcinalidades contruidas a nivel funcional.
+• Qué cambios realizó respecto a la versión anterior de device_systems.
+• Cómo protegió las rutas.
+• Cómo implementó hash de contraseñas.
+• Cómo funciona el login con OAuth2 y JWT.
+• Cómo aplicó middleware y CORS.
+• Cómo configuró rate limiting.
+• Qué aprendió sobre seguridad en APIs.
